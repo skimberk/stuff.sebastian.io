@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Map Walker</title>
+    <style>html,body{background:#000;height:100%;margin:0;font-family:system-ui,sans-serif;overflow:hidden}#app canvas{display:block}.hud{color:#fff;text-shadow:0 1px 2px #000a;pointer-events:none;font-size:12px;position:fixed}#help{line-height:1.5;top:10px;left:12px}#attribution{text-align:right;max-width:70vw;bottom:6px;right:10px}#google{font-size:14px;font-weight:700;bottom:6px;left:10px}#notice{pointer-events:auto;background:#000a;border-radius:6px;max-width:460px;padding:6px 12px;font-size:12px;line-height:1.5;top:92px;left:50%;transform:translate(-50%)}#notice code{background:#fff2;border-radius:3px;padding:1px 4px}</style>
+    <script type="module" crossorigin src="./assets/index-C3jTftDc.js"></script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <div id="help" class="hud">
+      <b>Walk:</b> W/S move · A/D turn · Shift run · Q/E or drag orbit camera · G debug readout<br />
+      <b>Fly (F to toggle):</b> click to look · WASD move · Space/E up · Q/C down · Shift fast<br />
+      <b>Game:</b> 1–8 / L levels · M minimap zoom · H hint · Backspace restart · R toggle road lines<br />
+      <span style="color:#ff3df0">■</span> bridge
+      <span style="color:#ffd23d">■</span> ramp
+      <span style="color:#ff8a3d">■</span> highway
+      <span style="color:#e8eef7">■</span> major
+      <span style="color:#9aa4b2">■</span> street
+      <span style="color:#7cf2a4">■</span> footpath
+    </div>
+    <div id="google" class="hud">Google</div>
+    <div id="attribution" class="hud"></div>
+    <div id="notice" class="hud" hidden>
+      <b>No Google API key set</b> — showing the road graph only.<br />
+      Create <code>.env.local</code> with <code>VITE_GOOGLE_MAPS_API_KEY=…</code>
+      (Map Tiles API enabled) and restart <code>npm run dev</code>.
+    </div>
+  </body>
+</html>
