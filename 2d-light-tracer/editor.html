@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<script src="coi-sw.js"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Light editor</title>
+<style>
+  :root {
+    --bg: #0c0e11; --panel: #14181d; --panel2: #1a1f25; --fg: #e6e8eb; --muted: #8b939c; --line: #262c33;
+    --accent: #6cc4ff; --warn: #ffb35c; --err: #ff6b6b; --ok: #7ddc8a;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { height: 100%; }
+  body { background: var(--bg); color: var(--fg); font: 13px/1.4 ui-sans-serif, system-ui, -apple-system, sans-serif; margin: 0; display: flex; flex-direction: column; overflow: hidden; }
+  header { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  h1 { font-size: 15px; font-weight: 650; margin: 0 6px 0 0; letter-spacing: .01em; white-space: nowrap; }
+  header .sp { flex: 1; }
+  #path { font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 46vw; }
+  #path b { color: var(--ok); font-weight: 600; }
+  #path .warn { color: var(--warn); }
+  select, button, input[type=number] { font: inherit; color: var(--fg); background: var(--panel2); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; }
+  button { cursor: pointer; }
+  button:hover:not(:disabled) { border-color: var(--accent); }
+  button:disabled { opacity: .45; cursor: default; }
+  button.on { border-color: var(--accent); background: #18324a; }
+  select:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .layout { flex: 1; display: grid; grid-template-columns: 150px 1fr 280px; min-height: 0; }
+  .toolbar { border-right: 1px solid var(--line); padding: 8px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+  .toolbar h3, .inspector h3 { font-size: 11px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); margin: 8px 2px 2px; font-weight: 600; }
+  .toolbar button { display: flex; align-items: center; gap: 7px; text-align: left; padding: 5px 7px; touch-action: none; }
+  .toolbar button .ic { width: 18px; height: 18px; flex: none; }
+  .toolbar button kbd { margin-left: auto; color: var(--muted); font: 10px ui-monospace, monospace; }
+  .center { display: flex; align-items: center; justify-content: center; min-width: 0; min-height: 0; padding: 10px; }
+  .stage { position: relative; width: 100%; max-height: 100%; aspect-ratio: 16 / 9; background: #000; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; touch-action: none; }
+  @supports (width: min(1px, 1px)) { .stage { width: min(100%, calc((100vh - 80px) * 16 / 9)); } }
+  .stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  #overlay { cursor: default; }
+  .hud { position: absolute; left: 8px; top: 6px; font: 11.5px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace; color: #d6dde4; text-shadow: 0 1px 2px #000, 0 0 4px #000; pointer-events: none; white-space: pre; font-variant-numeric: tabular-nums; }
+  .hud .dim { color: #8b939c; }
+  .toast { position: absolute; right: 10px; bottom: 8px; font-size: 12px; color: var(--muted); text-shadow: 0 1px 2px #000; pointer-events: none; }
+  .inspector { border-left: 1px solid var(--line); padding: 8px 10px; overflow-y: auto; }
+  .row { display: grid; grid-template-columns: 1fr 64px; gap: 2px 6px; align-items: center; margin: 5px 0; }
+  .row label { grid-column: 1 / -1; color: var(--muted); font-size: 11.5px; display: flex; align-items: center; gap: 6px; }
+  .row input[type=range] { width: 100%; accent-color: var(--accent); }
+  .row input[type=number] { width: 64px; padding: 2px 4px; font-size: 12px; }
+  .row select { grid-column: 1 / -1; }
+  .swatch { display: inline-block; width: 12px; height: 12px; border-radius: 3px; border: 1px solid #0006; }
+  .check { display: flex; align-items: center; gap: 6px; margin: 6px 0; color: var(--muted); }
+  .btns { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0; }
+  .empty { color: var(--muted); font-size: 12px; margin: 6px 2px; }
+  .inspector h4 { font-size: 11.5px; font-weight: 600; color: var(--fg); margin: 12px 2px 2px; padding-top: 8px; border-top: 1px solid var(--line); }
+  .hint { color: var(--muted); font-size: 11px; margin: -2px 0 6px; }
+  .hint.warn { color: var(--warn); }
+  details.adv { margin: 4px 0 6px; border: 1px solid var(--line); border-radius: 6px; padding: 2px 8px; background: #11151a; }
+  details.adv summary { cursor: pointer; color: var(--muted); font-size: 11.5px; padding: 3px 0; }
+  details.adv[open] summary { margin-bottom: 2px; }
+  .row input[type=color] { background: var(--panel2); border: 1px solid var(--line); border-radius: 6px; }
+  .row label input[type=checkbox] { margin: 0; }
+  #status { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 14px; pointer-events: none; text-align: center; padding: 20px; white-space: pre-wrap; }
+  #status.err { color: var(--err); background: #000c; pointer-events: auto; font: 12px ui-monospace, monospace; }
+  .help { color: var(--muted); font-size: 11.5px; line-height: 1.5; }
+  .help kbd { font: 10.5px ui-monospace, monospace; background: var(--panel2); border: 1px solid var(--line); border-radius: 3px; padding: 0 3px; color: var(--fg); }
+  /* camera scenes: sensor inset over the stage, Camera panel */
+  .sensor-inset { position: absolute; right: 6px; top: 14%; bottom: 14%; display: flex; gap: 6px; padding: 6px 7px; background: #0b0d10d9; border: 1px solid #ffffff1f; border-radius: 6px; pointer-events: none; font-size: 10.5px; color: var(--muted); }
+  .sensor-inset canvas { position: static; display: block; }
+  .sensor-inset .si-text { display: flex; flex-direction: column; gap: 3px; width: 92px; }
+  .sensor-inset .si-title { color: var(--fg); font-weight: 600; font-size: 11px; }
+  .sensor-inset .si-sub { line-height: 1.25; }
+  .sensor-inset .si-meta { margin-top: auto; font: 10px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace; font-variant-numeric: tabular-nums; }
+  #sensorStrip { width: 26px; height: 100%; border: 1px solid #ffffff2a; background: #000; }
+  #sensorPlot { width: 52px; height: 100%; }
+  .focus-btns { display: flex; gap: 4px; margin: 2px 0 6px; }
+  .focus-btns button { flex: 1; padding: 2px 4px; font-size: 11.5px; }
+  .dof { display: grid; grid-template-columns: 12px 1fr auto; gap: 1px 6px; align-items: center; font-size: 11px; color: var(--muted); margin: 2px 0 6px; }
+  .dof .sw { width: 10px; height: 10px; border-radius: 2px; }
+  .dof .sharp { color: var(--ok); }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; grid-template-rows: auto 1fr auto; } .toolbar { flex-direction: row; flex-wrap: wrap; border-right: 0; border-bottom: 1px solid var(--line); } .toolbar h3 { display: none; } .inspector { border-left: 0; border-top: 1px solid var(--line); max-height: 40vh; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>zpg light editor</h1>
+  <select id="preset" title="Load a preset scene"></select>
+  <button id="undo" title="Undo (⌘Z)">Undo</button>
+  <button id="redo" title="Redo (⇧⌘Z)">Redo</button>
+  <button id="save" title="Download the scene as JSON">Save</button>
+  <button id="load" title="Load a scene JSON file">Load</button>
+  <input id="file" type="file" accept=".json,application/json" hidden>
+  <span class="sp"></span>
+  <span id="path">starting…</span>
+</header>
+<div class="layout">
+  <nav class="toolbar" id="toolbar" aria-label="Insert"></nav>
+  <div class="center">
+    <div class="stage" id="stage">
+      <canvas id="render" width="1280" height="720"></canvas>
+      <canvas id="overlay" tabindex="0" aria-label="Scene"></canvas>
+      <div class="hud" id="hud"></div>
+      <div class="toast" id="toast"></div>
+      <div class="sensor-inset" id="sensorInset" hidden>
+        <div class="si-text">
+          <div class="si-title">Sensor image</div>
+          <div class="si-sub" id="sensorSub">1D, inverted by the lens</div>
+          <div class="si-meta" id="sensorMeta">waiting for rays…</div>
+        </div>
+        <canvas id="sensorStrip" width="1" height="1"></canvas><canvas id="sensorPlot" width="64" height="200"></canvas>
+      </div>
+      <div id="status">loading…</div>
+    </div>
+  </div>
+  <aside class="inspector" id="inspector">
+    <section id="cameraSec" hidden>
+      <h3>Camera</h3>
+      <div id="cameraBox"></div>
+    </section>
+    <h3>Selection</h3>
+    <div id="props"><div class="empty">Click an object or light to select it. Drag to move; drag the handles to aim, rotate and resize.</div></div>
+    <h3>Scene</h3>
+    <label class="check"><input type="checkbox" id="walls"> Room walls</label>
+    <div class="row"><label for="wallAlbedo">Wall albedo</label><input type="range" id="wallAlbedo" min="0" max="1" step="0.01"><input type="number" id="wallAlbedoN" min="0" max="1" step="0.01"></div>
+    <div class="empty" id="baseNote" hidden></div>
+    <h3>Media</h3>
+    <label class="check" title="Fill the room (everything outside shapes) with a participating medium"><input type="checkbox" id="fogOn"> Room fog</label>
+    <div id="fogBox"></div>
+    <h3>Display</h3>
+    <div id="displayBox"></div>
+    <div class="empty">Display weights change how light is drawn, not where it goes.</div>
+    <h3>Exposure</h3>
+    <label class="check"><input type="checkbox" id="autoExp" checked> Auto exposure (uncheck to lock)</label>
+    <div class="row"><label for="ev">Exposure compensation (EV)</label><input type="range" id="ev" min="-4" max="4" step="0.1" value="0"><input type="number" id="evN" min="-4" max="4" step="0.1" value="0"></div>
+    <h3>View</h3>
+    <label class="check"><input type="checkbox" id="outlines" checked> Outlines <span class="help">(<kbd>O</kbd>)</span></label>
+    <label class="check"><input type="checkbox" id="hudOn" checked> Stats <span class="help">(<kbd>H</kbd>)</span></label>
+    <div class="row"><label for="decay">Trail while dragging (0 = current frame only)</label><input type="range" id="decay" min="0" max="0.9" step="0.05" value="0"><input type="number" id="decayN" min="0" max="0.9" step="0.05" value="0"></div>
+    <h3>Rendering</h3>
+    <div class="row"><label for="limit">Stop after (rays per still scene)</label><select id="limit"></select></div>
+    <div class="empty" id="limitNote">Rendering pauses at the limit and when the tab is hidden; any edit resumes it.</div>
+    <h3>Keys</h3>
+    <div class="help">
+      <kbd>Del</kbd> delete · <kbd>⌘D</kbd> duplicate · <kbd>⌘Z</kbd> undo · <kbd>Esc</kbd> deselect<br>
+      arrows nudge (<kbd>⇧</kbd> ×10) · <kbd>[</kbd> <kbd>]</kbd> rotate 5° · <kbd>⇧</kbd>-drag snaps angles to 15°<br>
+      toolbar: click to add at the centre, or drag onto the scene<br>URL: <kbd>limit=</kbd> (default 2M, e.g. 16M, 0 = unlimited), <kbd>decay=</kbd>, <kbd>raster=</kbd>, <kbd>trace=</kbd>, <kbd>res=</kbd>
+    </div>
+  </aside>
+</div>
+<script type="module" src="editor.js"></script>
+</body>
+</html>

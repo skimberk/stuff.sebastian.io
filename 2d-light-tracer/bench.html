@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<script src="coi-sw.js"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>zpg wasm bench</title>
+<style>
+  :root { --bg: #fff; --fg: #1b1b1b; --muted: #666; --line: #ddd; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #161616; --fg: #e8e8e8; --muted: #999; --line: #333; } }
+  body { background: var(--bg); color: var(--fg); font: 14px/1.4 system-ui, sans-serif; margin: 16px; }
+  label { margin-right: 12px; } input { width: 7em; }
+  table { border-collapse: collapse; margin: 12px 0; font-variant-numeric: tabular-nums; }
+  td, th { border-bottom: 1px solid var(--line); padding: 3px 10px; text-align: right; }
+  th:first-child, td:first-child { text-align: left; }
+  #status { color: var(--muted); } canvas { max-width: 100%; background: #000; }
+  pre { font-size: 12px; white-space: pre-wrap; color: var(--muted); }
+</style>
+</head>
+<body>
+<h1>zpg CPU renderer in wasm</h1>
+<form id="f">
+  <label>variants <input name="variants" value="scalar,simd,threads" style="width:22em"></label>
+  <label>scene <input name="scene" value="default"></label>
+  <label>mode <input name="mode" value="rgb"></label>
+  <label>rays <input name="rays" value="1048576"></label>
+  <label>reps <input name="reps" value="5"></label>
+  <label>threads <input name="threads" value=""></label>
+  <label><input type="checkbox" name="single" style="width:auto"> one call per render</label>
+  <label><input type="checkbox" name="raw" style="width:auto"> raw hash</label>
+  <button>Run</button>
+</form>
+<p id="status">idle</p>
+<table id="results"><thead><tr>
+  <th>variant</th><th>features</th><th>threads</th><th>rep</th><th>trace s</th><th>raster s</th><th>total s</th><th>rays/s</th><th>first/last round ms</th><th>hash</th>
+</tr></thead><tbody></tbody></table>
+<div id="traces"></div>
+<canvas id="c" width="1024" height="768"></canvas>
+<pre id="log"></pre>
+<script type="module" src="bench.js"></script>
+</body>
+</html>
